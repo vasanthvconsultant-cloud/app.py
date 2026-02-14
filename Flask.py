@@ -4,39 +4,38 @@ import os
 
 app = Flask(__name__)
 
-# Database configuration (Replace with your values)
-DB_HOST = "your-rds-endpoint"
-DB_USER = "admin"
-DB_PASSWORD = "Admin123"
-DB_NAME = "testdb"
-DB_PORT = 3306
+# Load RDS connection settings from environment variables
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_NAME = os.getenv("DB_NAME")
 
-
-def get_db_connection():
+def get_connection():
     return pymysql.connect(
         host=DB_HOST,
         user=DB_USER,
-        password=DB_PASSWORD,
+        password=DB_PASS,
         database=DB_NAME,
-        port=DB_PORT,
         cursorclass=pymysql.cursors.DictCursor
     )
 
-
 @app.route("/")
 def home():
+    return "Flask App Connected to RDS!"
+
+@app.route("/users")
+def users():
     try:
-        connection = get_db_connection()
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT NOW() as current_time;")
-            result = cursor.fetchone()
-        connection.close()
-
-        return f"Database Time: {result['current_time']}"
-
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users")  # Example table
+        rows = cursor.fetchall()
+        return rows
     except Exception as e:
-        return f"Database connection failed: {str(e)}"
-
+        return {"error": str(e)}, 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=8000)
